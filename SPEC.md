@@ -38,35 +38,39 @@ promotions in v1 (see §8 for how this extends later).
 ### 4.1 User Management
 - FR-1: The system stores users with an assigned tier (`Normal`, `Premium`, `SuperPremium`).
 - FR-2: The API can look up a user's tier by user ID.
+- FR-3: A new user can be created with a name, email, and an assigned tier. Access is open to any caller in v1, consistent with product catalog management (no separate admin role/auth — see §7).
+- FR-4: An existing user's details or tier can be updated.
 
 ### 4.2 Product Catalog
-- FR-3: Users can list all available products.
-- FR-4: Users can retrieve a single product by ID.
-- FR-5: Products can be added to the catalog.
-- FR-6: Products can be updated (price, name, stock, etc.).
-- FR-7: Products can be removed from the catalog.
+- FR-5: Users can list all available products.
+- FR-6: Users can retrieve a single product by ID.
+- FR-7: Products can be added to the catalog.
+- FR-8: Products can be updated (price, name, stock, etc.).
+- FR-9: Products can be removed from the catalog.
 
 ### 4.3 Ordering / Checkout
-- FR-8: A user can submit an order containing one or more products and quantities.
-- FR-9: The system rejects checkout if the item list is empty, if any referenced product ID does not exist, or if the requested quantity for any product exceeds available stock — with a specific error indicating which item(s) failed and why.
-- FR-10: The system calculates the order subtotal from product prices and quantities.
-- FR-11: The system applies the discount appropriate to the ordering user's tier to compute the final total.
-- FR-12: On successful checkout, the system decrements stock quantity for each ordered product by the ordered amount.
-- FR-13: The system persists the completed order with itemized pricing (unit price, quantity, discount applied, final total).
-- FR-14: A user can retrieve their past orders.
+- FR-10: A user can submit an order containing one or more products and quantities.
+- FR-11: The system rejects checkout if the item list is empty, if any referenced product ID does not exist, or if the requested quantity for any product exceeds available stock — with a specific error indicating which item(s) failed and why.
+- FR-12: The system calculates the order subtotal from product prices and quantities.
+- FR-13: The system applies the discount appropriate to the ordering user's tier to compute the final total.
+- FR-14: On successful checkout, the system decrements stock quantity for each ordered product by the ordered amount.
+- FR-15: The system persists the completed order with itemized pricing (unit price, quantity, discount applied, final total).
+- FR-16: A user can retrieve their past orders.
 
 ## 5. API Surface (v1)
 
 ```
-GET    /api/users/{id}          Get user + tier
-GET    /api/products            List all products
-GET    /api/products/{id}       Get one product
-POST   /api/products            Add a product
-PUT    /api/products/{id}       Update a product
-DELETE /api/products/{id}       Remove a product
-POST   /api/orders/checkout     Place an order (userId + cart items) -> returns priced order
-GET    /api/orders/{id}         Get an order
-GET    /api/users/{id}/orders   List a user's orders
+GET    /api/users/{id}           Get user + tier
+POST   /api/users                Create a user (name, email, tier)
+PUT    /api/users/{id}           Update a user's details/tier
+GET    /api/users/{id}/orders    List a user's orders
+GET    /api/products             List all products
+GET    /api/products/{id}        Get one product
+POST   /api/products             Add a product
+PUT    /api/products/{id}        Update a product
+DELETE /api/products/{id}        Remove a product
+POST   /api/orders/checkout      Place an order (userId + cart items) -> returns priced order
+GET    /api/orders/{id}          Get an order
 ```
 
 ### 5.1 Checkout request/response shape (illustrative)
