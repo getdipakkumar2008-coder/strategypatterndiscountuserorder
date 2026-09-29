@@ -302,4 +302,4 @@ components:
             type: object
             properties:
               productId: { type: string, format: uuid }
-              reason: { type: string, enum: [UnknownProduct, InsufficientStock, InvalidQuantity] }
+              reason: { type: string, enum: [UnknownProduct, InsufficientStock, InvalidQuantity, UnknownUser] }

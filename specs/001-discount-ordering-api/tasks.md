@@ -34,7 +34,7 @@ Single-solution layout per plan.md: `src/DiscountAndOrdering.{Domain,Application
 
 **Purpose**: Solution and project scaffolding.
 
-- [ ] T001 Create `DiscountAndOrdering.sln` at the repository root and the four projects
+- [X] T001 Create `DiscountAndOrdering.sln` at the repository root and the four projects
       `src/DiscountAndOrdering.Domain` (classlib), `src/DiscountAndOrdering.Application`
       (classlib), `src/DiscountAndOrdering.Infrastructure` (classlib),
       `src/DiscountAndOrdering.Api` (webapi), plus `tests/DiscountAndOrdering.UnitTests`
@@ -42,10 +42,10 @@ Single-solution layout per plan.md: `src/DiscountAndOrdering.{Domain,Application
       Infrastructure→Domain, Api→Application+Infrastructure, UnitTests→Domain+Application
       only (never Api/Infrastructure, per Constitution Principle V); add all projects to
       the solution.
-- [ ] T002 [P] Add `Microsoft.Extensions.Options` (or confirm it's included transitively via
+- [X] T002 [P] Add `Microsoft.Extensions.Options` (or confirm it's included transitively via
       the webapi SDK) as a reference from `src/DiscountAndOrdering.Application` so
       `IOptionsSnapshot<DiscountSettings>` is available without an Api-layer dependency.
-- [ ] T003 [P] Create `src/DiscountAndOrdering.Api/appsettings.json` with a `DiscountSettings`
+- [X] T003 [P] Create `src/DiscountAndOrdering.Api/appsettings.json` with a `DiscountSettings`
       section: `{ "DiscountSettings": { "TierPercentages": { "Normal": 0, "Premium": 20,
       "SuperPremium": 30 } } }` (per research.md / ARCHITECTURE.md §3.2).
 
@@ -58,45 +58,45 @@ Single-solution layout per plan.md: `src/DiscountAndOrdering.{Domain,Application
 **Purpose**: Domain entities, enums, and repository abstractions that every user story
 depends on. No user story work can begin until this phase is complete.
 
-- [ ] T004 [P] Create `UserTier` enum in `src/DiscountAndOrdering.Domain/Enums/UserTier.cs`
+- [X] T004 [P] Create `UserTier` enum in `src/DiscountAndOrdering.Domain/Enums/UserTier.cs`
       with exactly the values `Normal`, `Premium`, `SuperPremium` (data-model.md).
-- [ ] T005 [P] Create `User` entity in `src/DiscountAndOrdering.Domain/Entities/User.cs`:
+- [X] T005 [P] Create `User` entity in `src/DiscountAndOrdering.Domain/Entities/User.cs`:
       `Id` (Guid, immutable), `Name` (string, required non-empty — FR-016), `Email` (string,
       required non-empty — FR-016), `Tier` (UserTier, required).
-- [ ] T006 [P] Create `Product` entity in
+- [X] T006 [P] Create `Product` entity in
       `src/DiscountAndOrdering.Domain/Entities/Product.cs`: `Id` (Guid, immutable), `Name`
       (string, required non-empty — FR-003), `Description` (string, optional), `Price`
       (decimal, must be > 0), `StockQuantity` (int, must be >= 0).
-- [ ] T007 [P] Create `OrderLineItem` entity in
+- [X] T007 [P] Create `OrderLineItem` entity in
       `src/DiscountAndOrdering.Domain/Entities/OrderLineItem.cs`: `ProductId` (Guid),
       `ProductName` (string, snapshot of Product.Name at checkout time — FR-013),
       `UnitPrice` (decimal, snapshot of Product.Price at checkout time — FR-013), `Quantity`
       (int, must be > 0), `LineTotal` (decimal, computed as UnitPrice * Quantity).
-- [ ] T008 [P] Create `Order` entity in `src/DiscountAndOrdering.Domain/Entities/Order.cs`:
+- [X] T008 [P] Create `Order` entity in `src/DiscountAndOrdering.Domain/Entities/Order.cs`:
       `Id` (Guid, immutable), `UserId` (Guid), `OrderDate` (DateTimeOffset), `LineItems`
       (IReadOnlyList<OrderLineItem>, must contain at least one item — FR-007), `Subtotal`
       (decimal, sum of line totals — FR-008), `DiscountPercentage` (decimal, snapshotted at
       checkout time), `DiscountAmount` (decimal), `FinalTotal` (decimal).
-- [ ] T009 [P] Define `IUserRepository` in
+- [X] T009 [P] Define `IUserRepository` in
       `src/DiscountAndOrdering.Domain/Interfaces/IUserRepository.cs` with
       `GetByIdAsync(Guid id)`, `AddAsync(User user)`, `UpdateAsync(User user)`.
-- [ ] T010 [P] Define `IProductRepository` in
+- [X] T010 [P] Define `IProductRepository` in
       `src/DiscountAndOrdering.Domain/Interfaces/IProductRepository.cs` with
       `GetByIdAsync(Guid id)`, `GetAllAsync()`, `AddAsync(Product product)`,
       `UpdateAsync(Product product)`, `DeleteAsync(Guid id)`.
-- [ ] T011 [P] Define `IOrderRepository` in
+- [X] T011 [P] Define `IOrderRepository` in
       `src/DiscountAndOrdering.Domain/Interfaces/IOrderRepository.cs` with
       `GetByIdAsync(Guid id)`, `GetByUserIdAsync(Guid userId)`, `AddAsync(Order order)`.
-- [ ] T012 [P] Implement `InMemoryUserRepository` (ConcurrentDictionary-backed) in
+- [X] T012 [P] Implement `InMemoryUserRepository` (ConcurrentDictionary-backed) in
       `src/DiscountAndOrdering.Infrastructure/Repositories/InMemoryUserRepository.cs`
       (depends on T005, T009).
-- [ ] T013 [P] Implement `InMemoryProductRepository` (ConcurrentDictionary-backed) in
+- [X] T013 [P] Implement `InMemoryProductRepository` (ConcurrentDictionary-backed) in
       `src/DiscountAndOrdering.Infrastructure/Repositories/InMemoryProductRepository.cs`
       (depends on T006, T010).
-- [ ] T014 [P] Implement `InMemoryOrderRepository` (ConcurrentDictionary-backed) in
+- [X] T014 [P] Implement `InMemoryOrderRepository` (ConcurrentDictionary-backed) in
       `src/DiscountAndOrdering.Infrastructure/Repositories/InMemoryOrderRepository.cs`
       (depends on T007, T008, T011).
-- [ ] T015 Register `IUserRepository`, `IProductRepository`, `IOrderRepository` against
+- [X] T015 Register `IUserRepository`, `IProductRepository`, `IOrderRepository` against
       their in-memory implementations as singletons in
       `src/DiscountAndOrdering.Api/Program.cs` (depends on T012, T013, T014; single shared
       file, not parallelizable with other Program.cs-editing tasks).
@@ -116,13 +116,13 @@ returned data matches what exists in the repository — no order or user logic i
 
 ### Implementation for User Story 1
 
-- [ ] T016 [P] [US1] Create `ProductDto` (Id, Name, Description, Price, StockQuantity) in
+- [X] T016 [P] [US1] Create `ProductDto` (Id, Name, Description, Price, StockQuantity) in
       `src/DiscountAndOrdering.Application/Dtos/ProductDto.cs` (per contracts/api.yaml
       `Product` schema).
-- [ ] T017 [US1] Implement `ProductService.GetAllAsync()` and `GetByIdAsync(Guid id)` in
+- [X] T017 [US1] Implement `ProductService.GetAllAsync()` and `GetByIdAsync(Guid id)` in
       `src/DiscountAndOrdering.Application/Services/ProductService.cs`, mapping `Product`
       entities to `ProductDto` (depends on T006, T010, T016).
-- [ ] T018 [US1] Implement `ProductsController` `GET /api/products` and
+- [X] T018 [US1] Implement `ProductsController` `GET /api/products` and
       `GET /api/products/{id}` in
       `src/DiscountAndOrdering.Api/Controllers/ProductsController.cs`, returning 404 when
       the id doesn't match any product (FR-002) (depends on T017).
@@ -143,17 +143,17 @@ order involved.
 
 ### Implementation for User Story 2
 
-- [ ] T019 [P] [US2] Create `UserDto`, `CreateUserRequest`, `UpdateUserRequest` in
+- [X] T019 [P] [US2] Create `UserDto`, `CreateUserRequest`, `UpdateUserRequest` in
       `src/DiscountAndOrdering.Application/Dtos/UserDto.cs` (per contracts/api.yaml
       `User`/`CreateUserRequest`/`UpdateUserRequest` schemas).
-- [ ] T020 [US2] Implement `UserService.CreateAsync(...)` and `UpdateAsync(...)` in
+- [X] T020 [US2] Implement `UserService.CreateAsync(...)` and `UpdateAsync(...)` in
       `src/DiscountAndOrdering.Application/Services/UserService.cs`, rejecting a create or
       update whose `Tier` is missing or not one of the defined `UserTier` values (FR-017)
       (depends on T005, T009, T019).
-- [ ] T021 [US2] Implement `UsersController` `POST /api/users` and `PUT /api/users/{id}` in
+- [X] T021 [US2] Implement `UsersController` `POST /api/users` and `PUT /api/users/{id}` in
       `src/DiscountAndOrdering.Api/Controllers/UsersController.cs`, returning 400 on
       invalid/missing tier and 404 on an unknown id for update (depends on T020).
-- [ ] T022 [US2] Implement `UsersController` `GET /api/users/{id}` in
+- [X] T022 [US2] Implement `UsersController` `GET /api/users/{id}` in
       `src/DiscountAndOrdering.Api/Controllers/UsersController.cs` (FR-002, needed to verify
       created/updated users) (depends on T020).
 
@@ -175,48 +175,48 @@ correct for that tier (SC-002).
 > Write these first; they exercise `Domain`/`Application` types directly with no host and no
 > concrete repository.
 
-- [ ] T023 [P] [US3] Unit test `PercentageDiscountStrategy.ApplyDiscount` for 0%, 20%, and
+- [X] T023 [P] [US3] Unit test `PercentageDiscountStrategy.ApplyDiscount` for 0%, 20%, and
       30% inputs in
       `tests/DiscountAndOrdering.UnitTests/Discounts/PercentageDiscountStrategyTests.cs`.
-- [ ] T024 [P] [US3] Unit test `ConfigurableDiscountStrategyResolver.Resolve` returns a
+- [X] T024 [P] [US3] Unit test `ConfigurableDiscountStrategyResolver.Resolve` returns a
       strategy using the configured percentage for each of the three tiers, and throws when
       a tier has no configured entry, in
       `tests/DiscountAndOrdering.UnitTests/Discounts/ConfigurableDiscountStrategyResolverTests.cs`
       (use an in-memory `DiscountSettings` instance, no real `appsettings.json` load
       required).
-- [ ] T025 [P] [US3] Unit test `PricingService.CalculatePricing` computes subtotal, discount
+- [X] T025 [P] [US3] Unit test `PricingService.CalculatePricing` computes subtotal, discount
       amount, and final total correctly for all three tiers given a known cart, in
       `tests/DiscountAndOrdering.UnitTests/Services/PricingServiceTests.cs`.
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Define `IDiscountStrategy` with `decimal ApplyDiscount(decimal
+- [X] T026 [P] [US3] Define `IDiscountStrategy` with `decimal ApplyDiscount(decimal
       subtotal)` in `src/DiscountAndOrdering.Domain/Interfaces/IDiscountStrategy.cs`.
-- [ ] T027 [US3] Implement `PercentageDiscountStrategy(decimal percentage)` in
+- [X] T027 [US3] Implement `PercentageDiscountStrategy(decimal percentage)` in
       `src/DiscountAndOrdering.Application/Discounts/PercentageDiscountStrategy.cs`
       (depends on T026).
-- [ ] T028 [US3] Create `DiscountSettings` options class (`Dictionary<string,decimal>
+- [X] T028 [US3] Create `DiscountSettings` options class (`Dictionary<string,decimal>
       TierPercentages`) in
       `src/DiscountAndOrdering.Application/Discounts/DiscountSettings.cs`.
-- [ ] T029 [US3] Define `IDiscountStrategyResolver` with `IDiscountStrategy Resolve(UserTier
+- [X] T029 [US3] Define `IDiscountStrategyResolver` with `IDiscountStrategy Resolve(UserTier
       tier)` in
       `src/DiscountAndOrdering.Application/Discounts/IDiscountStrategyResolver.cs` (depends
       on T004, T026).
-- [ ] T030 [US3] Implement `ConfigurableDiscountStrategyResolver` in
+- [X] T030 [US3] Implement `ConfigurableDiscountStrategyResolver` in
       `src/DiscountAndOrdering.Application/Discounts/ConfigurableDiscountStrategyResolver.cs`,
       reading `DiscountSettings` via `IOptionsSnapshot<DiscountSettings>` and throwing when
       a tier has no configured percentage (depends on T027, T028, T029).
-- [ ] T031 [US3] Bind `DiscountSettings` from configuration and register
+- [X] T031 [US3] Bind `DiscountSettings` from configuration and register
       `IDiscountStrategyResolver` → `ConfigurableDiscountStrategyResolver` in DI in
       `src/DiscountAndOrdering.Api/Program.cs` (depends on T030, T003; same file as T015).
-- [ ] T032 [US3] Implement `PricingService.CalculatePricing(lineItems, userTier)` — sums
+- [X] T032 [US3] Implement `PricingService.CalculatePricing(lineItems, userTier)` — sums
       subtotal, resolves the discount strategy via `IDiscountStrategyResolver`, returns
       subtotal/discountPercentage/discountAmount/finalTotal — in
       `src/DiscountAndOrdering.Application/Services/PricingService.cs` (depends on T030).
-- [ ] T033 [P] [US3] Create `CheckoutRequest` and `OrderResultDto` (including nested line
+- [X] T033 [P] [US3] Create `CheckoutRequest` and `OrderResultDto` (including nested line
       item DTO) in `src/DiscountAndOrdering.Application/Dtos/CheckoutRequest.cs` and
       `OrderResultDto.cs` (per contracts/api.yaml `CheckoutRequest`/`Order` schemas).
-- [ ] T034 [US3] Implement `OrderService.CheckoutAsync(CheckoutRequest request)`: load the
+- [X] T034 [US3] Implement `OrderService.CheckoutAsync(CheckoutRequest request)`: load the
       user via `IUserRepository` for their tier (FR-015), load each product via
       `IProductRepository`, sum duplicate `productId` entries into one line item (spec.md
       Assumptions), build snapshotted `OrderLineItem`s (FR-013), call `PricingService` for
@@ -224,10 +224,10 @@ correct for that tier (SC-002).
       decrement each product's `StockQuantity` by the ordered amount (FR-011) — in
       `src/DiscountAndOrdering.Application/Services/OrderService.cs` (depends on T008, T009,
       T010, T011, T032, T033).
-- [ ] T035 [US3] Implement `OrdersController` `POST /api/orders/checkout` in
+- [X] T035 [US3] Implement `OrdersController` `POST /api/orders/checkout` in
       `src/DiscountAndOrdering.Api/Controllers/OrdersController.cs`, returning 201 with the
       itemized order (depends on T034).
-- [ ] T036 [US3] Implement `OrdersController` `GET /api/orders/{id}` in
+- [X] T036 [US3] Implement `OrdersController` `GET /api/orders/{id}` in
       `src/DiscountAndOrdering.Api/Controllers/OrdersController.cs`, returning 404 when not
       found (FR-014) (depends on T034).
 
@@ -245,19 +245,19 @@ occurs (FR-007).
 **Independent Test**: Submit each invalid shape and confirm rejection with an identified
 reason, and that no order was created and no stock changed (SC-003).
 
-- [ ] T037 [P] [US4] Unit test `OrderService.CheckoutAsync` rejects an empty item list, an
+- [X] T037 [P] [US4] Unit test `OrderService.CheckoutAsync` rejects an empty item list, an
       unknown product id, an insufficient-stock request, and a non-positive quantity —
       each identifying the specific failing item and reason — with no `Order` persisted and
       no stock mutated, in
       `tests/DiscountAndOrdering.UnitTests/Services/OrderServiceTests.cs` (depends on T034;
       use fake repositories, no host).
-- [ ] T038 [US4] Add validation to `OrderService.CheckoutAsync` for an empty item list, any
+- [X] T038 [US4] Add validation to `OrderService.CheckoutAsync` for an empty item list, any
       unknown product id, any quantity exceeding current stock, and any non-positive
       quantity — evaluated after summing duplicate product ids — returning a structured
       failure that identifies each bad item and its reason, with no repository writes on
       failure, in `src/DiscountAndOrdering.Application/Services/OrderService.cs` (depends on
       T034; same file as T034, not parallelizable with it).
-- [ ] T039 [US4] Map `OrderService` validation failures to a 400 response with per-item
+- [X] T039 [US4] Map `OrderService` validation failures to a 400 response with per-item
       failure detail (matching contracts/api.yaml `CheckoutValidationError`) in
       `OrdersController` `POST /api/orders/checkout` in
       `src/DiscountAndOrdering.Api/Controllers/OrdersController.cs` (depends on T038, T035;
@@ -276,11 +276,11 @@ itemized breakdown (FR-014).
 /api/users/{id}/orders` and `GET /api/orders/{id}` both return the same pricing shown at
 checkout time (SC-004).
 
-- [ ] T040 [US5] Implement `OrderService.GetByIdAsync(Guid id)` and
+- [X] T040 [US5] Implement `OrderService.GetByIdAsync(Guid id)` and
       `GetByUserIdAsync(Guid userId)` (mapping to `OrderResultDto`) in
       `src/DiscountAndOrdering.Application/Services/OrderService.cs` (depends on T011, T033,
       T034; same file as T034/T038, not parallelizable with them).
-- [ ] T041 [US5] Implement `UsersController` `GET /api/users/{id}/orders` in
+- [X] T041 [US5] Implement `UsersController` `GET /api/users/{id}/orders` in
       `src/DiscountAndOrdering.Api/Controllers/UsersController.cs` (depends on T040).
 
 Note: `GET /api/orders/{id}` was already implemented in T036 (User Story 3) — it's the same
@@ -299,11 +299,11 @@ provide data to view.
 **Independent Test**: `POST` a product, see it via User Story 1's list, `PUT` to update it,
 `DELETE` it and confirm it no longer appears.
 
-- [ ] T042 [US6] Implement `ProductService.CreateAsync(...)`, `UpdateAsync(...)`,
+- [X] T042 [US6] Implement `ProductService.CreateAsync(...)`, `UpdateAsync(...)`,
       `DeleteAsync(Guid id)` in
       `src/DiscountAndOrdering.Application/Services/ProductService.cs` (depends on T006,
       T010, T016, T017; same file as T017, not parallelizable with it).
-- [ ] T043 [US6] Implement `ProductsController` `POST /api/products`,
+- [X] T043 [US6] Implement `ProductsController` `POST /api/products`,
       `PUT /api/products/{id}`, `DELETE /api/products/{id}` in
       `src/DiscountAndOrdering.Api/Controllers/ProductsController.cs`, returning 404 on an
       unknown id for update/delete (depends on T042, T018; same file as T018).
@@ -315,11 +315,11 @@ beyond manual repository seeding.
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T044 [P] Verify `dotnet build` succeeds with no warnings across the full solution.
-- [ ] T045 [P] Verify `dotnet test tests/DiscountAndOrdering.UnitTests` passes — confirms
+- [X] T044 [P] Verify `dotnet build` succeeds with no warnings across the full solution.
+- [X] T045 [P] Verify `dotnet test tests/DiscountAndOrdering.UnitTests` passes — confirms
       Constitution Principle V (discount/pricing logic testable with no host, no concrete
       repository).
-- [ ] T046 Run all six scenarios in `specs/001-discount-ordering-api/quickstart.md` against
+- [X] T046 Run all six scenarios in `specs/001-discount-ordering-api/quickstart.md` against
       the running API and confirm SC-001 through SC-007 are met, including the
       config-only discount-percentage change in scenario 6 (Constitution Principle IV).
 
