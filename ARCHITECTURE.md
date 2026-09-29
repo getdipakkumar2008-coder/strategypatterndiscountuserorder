@@ -209,6 +209,135 @@ container (Dependency Inversion Principle).
 
 ## 4. Checkout Sequence
 
+### 4.1 Class Diagram
+
+```mermaid
+classDiagram
+  class OrdersController {
+    +Checkout(CheckoutRequest) IActionResult
+    +Get(Guid) IActionResult
+  }
+  class OrderService {
+    +CheckoutAsync(CheckoutRequest) CheckoutResult
+    +GetByIdAsync(Guid) OrderResultDto
+    +GetByUserIdAsync(Guid) IReadOnlyList~OrderResultDto~
+  }
+  class PricingService {
+    +CalculatePricing(IReadOnlyList~OrderLineItem~, UserTier) PricingResult
+  }
+  class ConfigurableDiscountStrategyResolver {
+    +Resolve(UserTier) IDiscountStrategy
+  }
+  class PercentageDiscountStrategy {
+    -percentage : decimal
+    +ApplyDiscount(decimal) decimal
+  }
+  class IDiscountStrategy {
+    <<interface>>
+    +ApplyDiscount(decimal) decimal
+  }
+  class IUserRepository {
+    <<interface>>
+    +GetByIdAsync(Guid) User
+    +AddAsync(User) Task
+    +UpdateAsync(User) Task
+  }
+  class IProductRepository {
+    <<interface>>
+    +GetByIdAsync(Guid) Product
+    +UpdateAsync(Product) Task
+  }
+  class IOrderRepository {
+    <<interface>>
+    +GetByIdAsync(Guid) Order
+    +GetByUserIdAsync(Guid) IReadOnlyList~Order~
+    +AddAsync(Order) Task
+  }
+  class User {
+    +Id : Guid
+    +Tier : UserTier
+  }
+  class Product {
+    +Id : Guid
+    +Price : decimal
+    +StockQuantity : int
+    +ReduceStock(int)
+  }
+  class Order {
+    +Id : Guid
+    +UserId : Guid
+    +LineItems : IReadOnlyList~OrderLineItem~
+    +Subtotal : decimal
+    +DiscountAmount : decimal
+    +FinalTotal : decimal
+  }
+  class OrderLineItem {
+    +ProductId : Guid
+    +UnitPrice : decimal
+    +Quantity : int
+    +LineTotal : decimal
+  }
+
+  OrdersController --> OrderService
+  OrderService --> IUserRepository
+  OrderService --> IProductRepository
+  OrderService --> IOrderRepository
+  OrderService --> PricingService
+  PricingService --> IDiscountStrategyResolver
+  ConfigurableDiscountStrategyResolver ..|> IDiscountStrategyResolver
+  ConfigurableDiscountStrategyResolver ..> PercentageDiscountStrategy : creates
+  PercentageDiscountStrategy ..|> IDiscountStrategy
+  IUserRepository ..> User
+  IProductRepository ..> Product
+  IOrderRepository ..> Order
+  Order *-- OrderLineItem
+  OrderLineItem ..> Product : snapshots
+  User "1" --> "0..*" Order
+
+  class IDiscountStrategyResolver {
+    <<interface>>
+    +Resolve(UserTier) IDiscountStrategy
+  }
+```
+
+### 4.2 Checkout Sequence Diagram
+
+```mermaid
+sequenceDiagram
+  actor Client
+  participant Controller as OrdersController
+  participant Orders as OrderService
+  participant Users as IUserRepository
+  participant Products as IProductRepository
+  participant Pricing as PricingService
+  participant Resolver as IDiscountStrategyResolver
+  participant Strategy as IDiscountStrategy
+  participant Repository as IOrderRepository
+
+  Client->>Controller: POST /api/orders/checkout
+  Controller->>Orders: CheckoutAsync(request)
+  Orders->>Users: GetByIdAsync(userId)
+  Users-->>Orders: User with UserTier
+  Orders->>Products: GetByIdAsync(productId) for each item
+  Products-->>Orders: Products and current stock
+
+  alt Invalid cart, product, or quantity
+    Orders-->>Controller: Failed result with item failures
+    Controller-->>Client: 400 Bad Request
+  else Valid cart
+    Orders->>Pricing: CalculatePricing(lineItems, userTier)
+    Pricing->>Resolver: Resolve(userTier)
+    Resolver-->>Pricing: IDiscountStrategy
+    Pricing->>Strategy: ApplyDiscount(subtotal)
+    Strategy-->>Pricing: discountAmount
+    Pricing-->>Orders: subtotal, discount, finalTotal
+    Orders->>Repository: AddAsync(order)
+    Orders->>Products: UpdateAsync(product) after ReduceStock(quantity)
+    Orders-->>Controller: OrderResultDto
+    Controller-->>Client: 201 Created with priced order
+  end
+```
+
 1. `OrdersController.Checkout` receives `CheckoutRequest { UserId, Items[] }`.
 2. `OrderService`:
    a. Loads the user via `IUserRepository` → gets `UserTier`.
