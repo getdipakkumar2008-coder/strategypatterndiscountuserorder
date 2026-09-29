@@ -4,5 +4,6 @@ public enum UserTier
 {
     Normal,
     Premium,
-    SuperPremium
+    SuperPremium,
+    Platinum
 }

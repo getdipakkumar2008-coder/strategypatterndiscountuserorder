@@ -202,7 +202,7 @@ components:
   schemas:
     UserTier:
       type: string
-      enum: [Normal, Premium, SuperPremium]
+      enum: [Normal, Premium, SuperPremium, Platinum]
 
     CreateUserRequest:
       type: object

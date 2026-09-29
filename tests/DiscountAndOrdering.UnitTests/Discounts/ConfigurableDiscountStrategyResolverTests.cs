@@ -24,13 +24,15 @@ public class ConfigurableDiscountStrategyResolverTests
     [InlineData(UserTier.Normal, 0)]
     [InlineData(UserTier.Premium, 20)]
     [InlineData(UserTier.SuperPremium, 30)]
+    [InlineData(UserTier.Platinum, 60)]
     public void Resolve_UsesConfiguredPercentageForTier(UserTier tier, decimal expectedPercentage)
     {
         var resolver = CreateResolver(new Dictionary<string, decimal>
         {
             ["Normal"] = 0,
             ["Premium"] = 20,
-            ["SuperPremium"] = 30
+            ["SuperPremium"] = 30,
+            ["Platinum"] = 60
         });
 
         var strategy = resolver.Resolve(tier);
