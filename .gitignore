@@ -1,0 +1,13 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# IDE
+.vs/
+.idea/
+*.swp
+
+# Claude Code local/session state (not the shared spec-kit skills)
+.claude/settings.local.json
