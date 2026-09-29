@@ -1,0 +1,305 @@
+openapi: 3.0.3
+info:
+  title: Discount & Ordering API
+  version: "1.0"
+  description: >
+    v1 — no authentication; the acting user is identified explicitly by userId.
+    See specs/001-discount-ordering-api/spec.md for full requirements.
+
+paths:
+  /api/users:
+    post:
+      summary: Create a user (FR-016)
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserRequest' }
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400':
+          description: Missing or unrecognized tier (FR-017)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
+
+  /api/users/{id}:
+    get:
+      summary: Get user + tier (FR-002)
+      operationId: getUser
+      parameters: [ { $ref: '#/components/parameters/UserId' } ]
+      responses:
+        '200':
+          description: User found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '404':
+          description: No user with this id
+    put:
+      summary: Update a user's details/tier (FR-017)
+      operationId: updateUser
+      parameters: [ { $ref: '#/components/parameters/UserId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateUserRequest' }
+      responses:
+        '200':
+          description: User updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '400':
+          description: Missing or unrecognized tier (FR-017)
+        '404':
+          description: No user with this id
+
+  /api/users/{id}/orders:
+    get:
+      summary: List a user's past orders (FR-014)
+      operationId: listUserOrders
+      parameters: [ { $ref: '#/components/parameters/UserId' } ]
+      responses:
+        '200':
+          description: Orders for this user
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Order' }
+        '404':
+          description: No user with this id
+
+  /api/products:
+    get:
+      summary: List all products (FR-001)
+      operationId: listProducts
+      responses:
+        '200':
+          description: Full product catalog
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+    post:
+      summary: Add a product (FR-003)
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateProductRequest' }
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+
+  /api/products/{id}:
+    get:
+      summary: Get one product (FR-002)
+      operationId: getProduct
+      parameters: [ { $ref: '#/components/parameters/ProductId' } ]
+      responses:
+        '200':
+          description: Product found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404':
+          description: No product with this id
+    put:
+      summary: Update a product (FR-004)
+      operationId: updateProduct
+      parameters: [ { $ref: '#/components/parameters/ProductId' } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateProductRequest' }
+      responses:
+        '200':
+          description: Product updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        '404':
+          description: No product with this id
+    delete:
+      summary: Remove a product (FR-005)
+      operationId: deleteProduct
+      parameters: [ { $ref: '#/components/parameters/ProductId' } ]
+      responses:
+        '204':
+          description: Product removed
+        '404':
+          description: No product with this id
+
+  /api/orders/checkout:
+    post:
+      summary: Place an order (FR-006..FR-013)
+      operationId: checkout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CheckoutRequest' }
+      responses:
+        '201':
+          description: Order placed and priced
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '400':
+          description: >
+            Cart rejected (FR-007): empty cart, unknown product id, insufficient stock,
+            or non-positive quantity. Response identifies which item(s) failed and why.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CheckoutValidationError' }
+
+  /api/orders/{id}:
+    get:
+      summary: Get an order (FR-014)
+      operationId: getOrder
+      parameters: [ { $ref: '#/components/parameters/OrderId' } ]
+      responses:
+        '200':
+          description: Order found
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        '404':
+          description: No order with this id
+
+components:
+  parameters:
+    UserId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    ProductId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    OrderId:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+
+  schemas:
+    UserTier:
+      type: string
+      enum: [Normal, Premium, SuperPremium]
+
+    CreateUserRequest:
+      type: object
+      required: [name, email, tier]
+      properties:
+        name: { type: string, minLength: 1 }
+        email: { type: string, minLength: 1 }
+        tier: { $ref: '#/components/schemas/UserTier' }
+
+    UpdateUserRequest:
+      type: object
+      required: [name, email, tier]
+      properties:
+        name: { type: string, minLength: 1 }
+        email: { type: string, minLength: 1 }
+        tier: { $ref: '#/components/schemas/UserTier' }
+
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        email: { type: string }
+        tier: { $ref: '#/components/schemas/UserTier' }
+
+    CreateProductRequest:
+      type: object
+      required: [name, price, stockQuantity]
+      properties:
+        name: { type: string, minLength: 1 }
+        description: { type: string }
+        price: { type: number, format: decimal, exclusiveMinimum: 0 }
+        stockQuantity: { type: integer, minimum: 0 }
+
+    Product:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        price: { type: number, format: decimal }
+        stockQuantity: { type: integer }
+
+    CheckoutItem:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId: { type: string, format: uuid }
+        quantity: { type: integer, minimum: 1 }
+
+    CheckoutRequest:
+      type: object
+      required: [userId, items]
+      properties:
+        userId: { type: string, format: uuid }
+        items:
+          type: array
+          minItems: 1
+          items: { $ref: '#/components/schemas/CheckoutItem' }
+
+    OrderLineItem:
+      type: object
+      properties:
+        productId: { type: string, format: uuid }
+        productName: { type: string, description: "Snapshot at checkout time (FR-013)" }
+        unitPrice: { type: number, format: decimal, description: "Snapshot at checkout time (FR-013)" }
+        quantity: { type: integer }
+        lineTotal: { type: number, format: decimal }
+
+    Order:
+      type: object
+      properties:
+        orderId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        userTier: { $ref: '#/components/schemas/UserTier' }
+        orderDate: { type: string, format: date-time }
+        lineItems:
+          type: array
+          items: { $ref: '#/components/schemas/OrderLineItem' }
+        subtotal: { type: number, format: decimal }
+        discountPercentage: { type: number, format: decimal }
+        discountAmount: { type: number, format: decimal }
+        finalTotal: { type: number, format: decimal }
+
+    ValidationError:
+      type: object
+      properties:
+        message: { type: string }
+
+    CheckoutValidationError:
+      type: object
+      properties:
+        message: { type: string }
+        failedItems:
+          type: array
+          items:
+            type: object
+            properties:
+              productId: { type: string, format: uuid }
+              reason: { type: string, enum: [UnknownProduct, InsufficientStock, InvalidQuantity] }
