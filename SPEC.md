@@ -16,18 +16,21 @@ business logic** (see NFR-5 and §8).
 | Normal User | Standard customer, no discount. |
 | Premium User | Receives 20% discount on order totals. |
 | Super Premium User | Receives 30% discount on order totals. |
+| Platinum User | Receives 60% discount on order totals. Added post-v1 as a config-only extension (no code change beyond the `UserTier` enum member) — see NFR-5. |
 | Admin (implicit, v1) | Manages the product catalog via the same API (no separate role/auth in v1 — see §7). |
 
-These three tiers are the v1 requirement. The tier list is not assumed to
-be final — see NFR-5 for the extensibility requirement covering new tiers.
+The tier list is not assumed to be final — see NFR-5 for the extensibility
+requirement covering new tiers. Platinum demonstrates that requirement in
+practice.
 
-## 3. Discount Rules (v1)
+## 3. Discount Rules
 
 | User Tier | Discount |
 |---|---|
 | Normal | 0% |
 | Premium | 20% |
 | Super Premium | 30% |
+| Platinum | 60% |
 
 Discount is applied to the order subtotal at checkout. Only one discount
 rule applies per order (the user's tier rule) — no stacking with coupons or

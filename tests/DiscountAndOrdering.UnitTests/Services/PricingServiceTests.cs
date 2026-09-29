@@ -18,13 +18,15 @@ public class PricingServiceTests
     {
         [UserTier.Normal] = 0,
         [UserTier.Premium] = 20,
-        [UserTier.SuperPremium] = 30
+        [UserTier.SuperPremium] = 30,
+        [UserTier.Platinum] = 60
     };
 
     [Theory]
     [InlineData(UserTier.Normal, 0, 0)]
     [InlineData(UserTier.Premium, 20, 4)]
     [InlineData(UserTier.SuperPremium, 30, 6)]
+    [InlineData(UserTier.Platinum, 60, 12)]
     public void CalculatePricing_AppliesCorrectDiscountPerTier(
         UserTier tier, decimal expectedPercentage, decimal expectedDiscountAmount)
     {
