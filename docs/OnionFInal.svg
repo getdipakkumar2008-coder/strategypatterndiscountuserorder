@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1680 1160" role="img" aria-labelledby="title desc">
+  <title id="title">DiscountAndOrdering Onion Architecture</title>
+  <desc id="desc">True concentric circles: Domain in the center, Application in the middle, and API and Infrastructure as separate outer adapters. Right-hand callouts give actual project references, constructor dependencies, and interface implementations.</desc>
+  <defs>
+    <clipPath id="right-half"><rect x="530" y="40" width="510" height="1010"/></clipPath>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="userSpaceOnUse"><path d="M1 1 L11 6 L1 11 Z" fill="#334155"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #17223b; }
+      .title { font-size: 29px; font-weight: bold; }
+      .subtitle { font-size: 16px; fill: #475569; }
+      .ringtitle { font-size: 24px; font-weight: bold; }
+      .label { font-size: 18px; font-weight: bold; }
+      .small { font-size: 16px; }
+      .tiny { font-size: 14px; }
+      .paneltitle { font-size: 20px; font-weight: bold; }
+      .paneltext { font-size: 16px; }
+      .arrow { fill: none; stroke: #334155; stroke-width: 3; marker-end: url(#arrow); }
+      .dashed { fill: none; stroke: #475569; stroke-width: 2.5; stroke-dasharray: 7 6; marker-end: url(#arrow); }
+      .divider { stroke: #94a3b8; stroke-width: 1.5; }
+    </style>
+  </defs>
+  <rect width="1680" height="1160" fill="#ffffff"/>
+  <text x="58" y="45" class="title">DiscountAndOrdering · Onion Architecture</text>
+  <text x="58" y="72" class="subtitle">Actual project boundaries and types · arrows point inward to contracts · not a checkout sequence</text>
+
+  <!-- Concentric rings are intentionally drawn as SVG circles, not Mermaid subgraphs. -->
+  <circle cx="530" cy="570" r="475" fill="#dbeafe" stroke="#2563eb" stroke-width="4"/>
+  <circle cx="530" cy="570" r="475" fill="#ede9fe" clip-path="url(#right-half)"/>
+  <circle cx="530" cy="570" r="366" fill="#dcfce7" stroke="#15803d" stroke-width="4"/>
+  <circle cx="530" cy="570" r="223" fill="#fff2c0" stroke="#b45309" stroke-width="4"/>
+
+  <!-- Outer ring: two peer adapters, not dependencies of Application or Domain. -->
+  <text x="104" y="245" class="ringtitle">API adapter</text>
+  <text x="104" y="272" class="small">DiscountAndOrdering.Api</text>
+  <text x="86" y="326" class="label">ProductsController</text>
+  <text x="86" y="356" class="label">UsersController</text>
+  <text x="86" y="386" class="label">OrdersController</text>
+  <text x="79" y="714" class="small">Program.cs · composition root</text>
+  <text x="80" y="745" class="tiny">DTOs live in Application, not here</text>
+
+  <text x="760" y="245" class="ringtitle">Infrastructure</text>
+  <text x="760" y="272" class="small">DiscountAndOrdering.Infrastructure</text>
+  <text x="784" y="326" class="label">InMemoryUserRepository</text>
+  <text x="784" y="356" class="label">InMemoryProductRepository</text>
+  <text x="784" y="386" class="label">InMemoryOrderRepository</text>
+  <text x="813" y="714" class="small">ConcurrentDictionary</text>
+  <text x="813" y="744" class="tiny">repository storage</text>
+
+  <!-- Application ring: services, resolver and strategy belong here. -->
+  <text x="382" y="249" class="ringtitle">Application</text>
+  <text x="328" y="273" class="small">DiscountAndOrdering.Application</text>
+  <text x="374" y="298" class="small">ProductService · UserService</text>
+  <text x="383" y="322" class="small">OrderService · PricingService</text>
+  <text x="247" y="477" class="tiny">DTOs / requests</text>
+  <text x="250" y="499" class="tiny">CheckoutResult</text>
+  <text x="725" y="477" class="tiny">IDiscountStrategyResolver</text>
+  <text x="751" y="499" class="tiny">ConfigurableResolver*</text>
+  <text x="380" y="809" class="small">PercentageDiscountStrategy</text>
+  <text x="450" y="835" class="small">DiscountSettings</text>
+  <text x="375" y="856" class="tiny">* ConfigurableDiscountStrategyResolver</text>
+
+  <!-- Domain center: separate entities from ports. -->
+  <text x="451" y="397" class="ringtitle">DOMAIN</text>
+  <text x="380" y="422" class="tiny">DiscountAndOrdering.Domain</text>
+  <line x1="351" y1="441" x2="709" y2="441" class="divider"/>
+  <text x="383" y="470" class="label">Entities / model</text>
+  <text x="382" y="499" class="small">User · UserTier</text>
+  <text x="382" y="525" class="small">Product · Order</text>
+  <text x="382" y="551" class="small">OrderLineItem (in Order)</text>
+  <line x1="351" y1="568" x2="709" y2="568" class="divider"/>
+  <text x="383" y="596" class="label">Ports / interfaces</text>
+  <text x="382" y="622" class="small">IUserRepository</text>
+  <text x="382" y="648" class="small">IProductRepository</text>
+  <text x="382" y="674" class="small">IOrderRepository</text>
+  <text x="382" y="700" class="small">IDiscountStrategy</text>
+
+  <!-- Short explicit arrows across the onion boundaries. -->
+  <path class="arrow" d="M128 583 L161 583"/>
+  <path class="arrow" d="M255 583 L301 583"/>
+  <path class="arrow" d="M309 745 L352 710"/>
+  <path class="dashed" d="M915 581 L760 581"/>
+  <text x="79" y="556" class="tiny">incoming HTTP</text>
+  <text x="223" y="559" class="tiny">controllers → services</text>
+  <text x="750" y="564" class="tiny">implements ports</text>
+
+  <!-- Panel: explicit relationships, so every edge need not obscure the concentric picture. -->
+  <rect x="1050" y="102" width="590" height="978" rx="22" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+  <text x="1076" y="139" class="paneltitle">Project references (compile time)</text>
+  <text x="1076" y="172" class="paneltext">Api → Application, Infrastructure</text>
+  <text x="1076" y="198" class="paneltext">Application → Domain</text>
+  <text x="1076" y="224" class="paneltext">Infrastructure → Domain</text>
+  <text x="1076" y="250" class="paneltext">Domain → no project references</text>
+  <line x1="1076" y1="268" x2="1613" y2="268" class="divider"/>
+
+  <text x="1076" y="303" class="paneltitle">Controllers → application services</text>
+  <text x="1076" y="336" class="paneltext">ProductsController → ProductService</text>
+  <text x="1076" y="362" class="paneltext">UsersController → UserService, OrderService</text>
+  <text x="1076" y="388" class="paneltext">OrdersController → OrderService</text>
+  <line x1="1076" y1="407" x2="1613" y2="407" class="divider"/>
+
+  <text x="1076" y="443" class="paneltitle">Services → domain ports / types</text>
+  <text x="1076" y="476" class="paneltext">ProductService → IProductRepository → Product</text>
+  <text x="1076" y="502" class="paneltext">UserService → IUserRepository → User</text>
+  <text x="1076" y="528" class="paneltext">OrderService → IUserRepository</text>
+  <text x="1076" y="554" class="paneltext">OrderService → IProductRepository</text>
+  <text x="1076" y="580" class="paneltext">OrderService → IOrderRepository → Order</text>
+  <text x="1076" y="606" class="paneltext">OrderService → PricingService</text>
+  <text x="1076" y="632" class="paneltext">PricingService → IDiscountStrategyResolver</text>
+  <text x="1076" y="658" class="paneltext">Resolver → PercentageDiscountStrategy</text>
+  <text x="1076" y="684" class="paneltext">PercentageDiscountStrategy → IDiscountStrategy</text>
+  <line x1="1076" y1="705" x2="1613" y2="705" class="divider"/>
+
+  <text x="1076" y="742" class="paneltitle">Infrastructure implements domain ports</text>
+  <text x="1076" y="775" class="paneltext">InMemoryUserRepository → IUserRepository</text>
+  <text x="1076" y="801" class="paneltext">InMemoryProductRepository → IProductRepository</text>
+  <text x="1076" y="827" class="paneltext">InMemoryOrderRepository → IOrderRepository</text>
+  <line x1="1076" y1="849" x2="1613" y2="849" class="divider"/>
+
+  <text x="1076" y="885" class="paneltitle">Domain relationships</text>
+  <text x="1076" y="918" class="paneltext">User.Tier → UserTier enum</text>
+  <text x="1076" y="944" class="paneltext">Order owns OrderLineItem collection</text>
+  <text x="1076" y="970" class="paneltext">Order.UserId → User.Id (identifier only)</text>
+  <text x="1076" y="996" class="paneltext">OrderLineItem.ProductId → Product.Id</text>
+  <text x="1076" y="1022" class="paneltext">Name and price copied into each line item</text>
+  <text x="72" y="1110" class="subtitle">Solid arrows: dependency / call direction. Dashed arrow: infrastructure implements inward-facing interfaces. Ring positions are architectural, not a call sequence.</text>
+</svg>
