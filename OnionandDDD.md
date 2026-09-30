@@ -1,444 +1,378 @@
-# Onion Architecture and DDD View of the Repository
+# Onion Architecture and DDD Architecture
 
-This document describes how the repository is structured using an Onion/Clean Architecture style and where it aligns with Domain-Driven Design (DDD) principles.
+This document presents the repository as a **circular Onion Architecture diagram** and a **DDD aggregate/class relationship diagram**.
 
-## 1. Project-level Onion Architecture
+## 1. Circular Onion Architecture
+
+The dependency rule is: **outer layers depend inward; inner layers never depend on outer layers**.
 
 ```mermaid
 flowchart TB
-    Client["HTTP Client / Swagger"]
+    subgraph API_RING["Presentation / API Ring"]
+        API["DiscountAndOrdering.Api<br/><br/>Controllers:<br/>ProductsController<br/>UsersController<br/>OrdersController<br/><br/>Program.cs<br/>DI composition root"]
 
-    subgraph Presentation["Presentation / API Layer"]
-        API["DiscountAndOrdering.Api"]
-        Controllers["ProductsController<br/>UsersController<br/>OrdersController"]
-        Composition["Program.cs<br/>DI registrations<br/>Configuration<br/>Exception handling"]
+        subgraph APP_RING["Application / Use-Case Ring"]
+            APP["DiscountAndOrdering.Application<br/><br/>Services:<br/>ProductService<br/>UserService<br/>OrderService<br/>PricingService<br/><br/>DTOs, resolver, validation"]
+
+            subgraph DOMAIN_RING["Domain / Business Core Ring"]
+                DOMAIN["DiscountAndOrdering.Domain<br/><br/>Entities:<br/>User, Product, Order, OrderLineItem<br/><br/>UserTier<br/><br/>Interfaces:<br/>IUserRepository<br/>IProductRepository<br/>IOrderRepository<br/>IDiscountStrategy"]
+            end
+        end
     end
 
-    subgraph Application["Application / Use-Case Layer"]
-        APP["DiscountAndOrdering.Application"]
-        Services["ProductService<br/>UserService<br/>OrderService<br/>PricingService"]
-        DiscountApplication["IDiscountStrategyResolver<br/>ConfigurableDiscountStrategyResolver<br/>PercentageDiscountStrategy<br/>DiscountSettings"]
-        DTOs["Request / Response DTOs"]
-        Exceptions["ValidationException"]
-    end
+    INFRA["Infrastructure Adapter<br/><br/>DiscountAndOrdering.Infrastructure<br/><br/>InMemoryUserRepository<br/>InMemoryProductRepository<br/>InMemoryOrderRepository"]
 
-    subgraph Domain["Domain Core"]
-        DOM["DiscountAndOrdering.Domain"]
-        Entities["User<br/>Product<br/>Order<br/>OrderLineItem"]
-        Enums["UserTier"]
-        Ports["IUserRepository<br/>IProductRepository<br/>IOrderRepository<br/>IDiscountStrategy"]
-    end
-
-    subgraph Infrastructure["Infrastructure Layer"]
-        INFRA["DiscountAndOrdering.Infrastructure"]
-        Repositories["InMemoryUserRepository<br/>InMemoryProductRepository<br/>InMemoryOrderRepository"]
-        Storage["ConcurrentDictionary storage"]
-    end
-
-    Client --> Controllers
-    Controllers --> Services
-    Composition --> Services
-    Composition --> Repositories
-    Composition --> DiscountApplication
-
-    APP --> DOM
-    INFRA --> DOM
+    CLIENT["HTTP Client / Swagger"] --> API
     API --> APP
-    API --> INFRA
+    APP --> DOMAIN
+    INFRA -. implements Domain interfaces .-> DOMAIN
+    API -. registers Infrastructure implementations .-> INFRA
 
-    Services --> Ports
-    Services --> Entities
-    DiscountApplication --> Ports
-    DiscountApplication --> Enums
+    classDef api fill:#dbeafe,stroke:#2563eb,stroke-width:3px,color:#111827;
+    classDef app fill:#dcfce7,stroke:#16a34a,stroke-width:3px,color:#111827;
+    classDef domain fill:#fef3c7,stroke:#d97706,stroke-width:4px,color:#111827;
+    classDef infra fill:#f3e8ff,stroke:#9333ea,stroke-width:3px,color:#111827;
+    classDef client fill:#f3f4f6,stroke:#6b7280,stroke-width:2px,color:#111827;
 
-    Repositories -. implement .-> Ports
-    Repositories --> Storage
+    class API api;
+    class APP app;
+    class DOMAIN domain;
+    class INFRA infra;
+    class CLIENT client;
+
+    style API_RING fill:#eff6ff,stroke:#2563eb,stroke-width:4px
+    style APP_RING fill:#f0fdf4,stroke:#16a34a,stroke-width:4px
+    style DOMAIN_RING fill:#fffbeb,stroke:#d97706,stroke-width:5px
 ```
 
-### Dependency direction
+### Circular layer interpretation
 
 ```text
+┌─────────────────────────────────────────────────────────────┐
+│ API / Presentation                                          │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ Application / Use Cases                              │  │
+│  │  ┌───────────────────────────────────────────────┐   │  │
+│  │  │ Domain Core                                  │   │  │
+│  │  │ User, Product, Order, policies, interfaces   │   │  │
+│  │  └───────────────────────────────────────────────┘   │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+
+Infrastructure is an external adapter that implements interfaces
+owned by the Domain layer.
+```
+
+The effective dependency direction is:
+
+```text
+HTTP Client
+    ↓
 DiscountAndOrdering.Api
-   -> DiscountAndOrdering.Application
-   -> DiscountAndOrdering.Infrastructure
-
+    ↓
 DiscountAndOrdering.Application
-   -> DiscountAndOrdering.Domain
-
+    ↓
+DiscountAndOrdering.Domain
+    ↑
 DiscountAndOrdering.Infrastructure
-   -> DiscountAndOrdering.Domain
 ```
 
-This is the expected onion / clean architecture structure:
-
-```text
-API -> Application -> Domain <- Infrastructure
-```
-
-The `Domain` project is the core. It holds the business model and contract interfaces, and it does not depend on the infrastructure or API layers.
+`DiscountAndOrdering.Domain` has no project dependency on the outer layers.
 
 ---
 
-## 2. Production structure and responsibilities
+## 2. Project and namespace placement
 
-### `DiscountAndOrdering.Domain`
-
-This is the domain core.
-
-Entities:
-- `User`
-- `Product`
-- `Order`
-- `OrderLineItem`
-
-Enum:
-- `UserTier`
-
-Interfaces / ports:
-- `IUserRepository`
-- `IProductRepository`
-- `IOrderRepository`
-- `IDiscountStrategy`
-
-These interfaces define the repository and strategy contracts. The infrastructure layer implements them.
-
-### `DiscountAndOrdering.Application`
-
-This layer contains application services and orchestration logic.
-
-Services:
-- `UserService`
-- `ProductService`
-- `OrderService`
-- `PricingService`
-
-Discount logic:
-- `IDiscountStrategyResolver`
-- `ConfigurableDiscountStrategyResolver`
-- `PercentageDiscountStrategy`
-- `DiscountSettings`
-
-DTOs:
-- `UserDto`
-- `ProductDto`
-- `OrderResultDto`
-- `CheckoutRequest`
-- `CheckoutResult`
-
-This layer depends on the Domain abstractions, not on concrete infrastructure implementations.
-
-### `DiscountAndOrdering.Infrastructure`
-
-This layer contains concrete implementations of the repository interfaces.
-
-Repositories:
-- `InMemoryUserRepository`
-- `InMemoryProductRepository`
-- `InMemoryOrderRepository`
-
-These are in-memory adapters, which are a suitable implementation for v1. The repository pattern isolates persistence details from the business layer.
-
-### `DiscountAndOrdering.Api`
-
-This is the composition root and presentation layer.
-
-Controllers:
-- `UsersController`
-- `ProductsController`
-- `OrdersController`
-
-`Program.cs` wires up DI and configures the startup pipeline.
+```mermaid
+mindmap
+  root((DiscountAndOrdering))
+    API
+      DiscountAndOrdering.Api
+      Controllers
+        ProductsController
+        UsersController
+        OrdersController
+      Program.cs
+      appsettings.json
+    Application
+      DiscountAndOrdering.Application
+      Services
+        ProductService
+        UserService
+        OrderService
+        PricingService
+      Discounts
+        IDiscountStrategyResolver
+        ConfigurableDiscountStrategyResolver
+        PercentageDiscountStrategy
+        DiscountSettings
+      DTOs
+        ProductDto
+        UserDto
+        CheckoutRequest
+        CheckoutResult
+        OrderResultDto
+      Exceptions
+        ValidationException
+    Domain
+      DiscountAndOrdering.Domain
+      Entities
+        User
+        Product
+        Order
+        OrderLineItem
+      Enums
+        UserTier
+      Interfaces
+        IUserRepository
+        IProductRepository
+        IOrderRepository
+        IDiscountStrategy
+    Infrastructure
+      DiscountAndOrdering.Infrastructure
+      Repositories
+        InMemoryUserRepository
+        InMemoryProductRepository
+        InMemoryOrderRepository
+    Tests
+      DiscountAndOrdering.UnitTests
+      Discount tests
+      Pricing tests
+      OrderService tests
+```
 
 ---
 
-## 3. Class and interface relationship map
+## 3. DDD circular domain model
+
+```mermaid
+flowchart TB
+    subgraph DOMAIN_CORE["DDD Domain Core"]
+        USER["User Aggregate Root<br/><br/>Id<br/>Name<br/>Email<br/>Tier: UserTier<br/><br/>UpdateDetails()"]
+        PRODUCT["Product Aggregate Root<br/><br/>Id<br/>Name<br/>Description<br/>Price<br/>StockQuantity<br/><br/>UpdateDetails()<br/>ReduceStock()"]
+        ORDER["Order Aggregate Root<br/><br/>Id<br/>UserId<br/>OrderDate<br/>Subtotal<br/>DiscountPercentage<br/>DiscountAmount<br/>FinalTotal"]
+        LINE["OrderLineItem<br/><br/>ProductId<br/>ProductName snapshot<br/>UnitPrice snapshot<br/>Quantity<br/>LineTotal"]
+        TIER["UserTier<br/>Normal<br/>Premium<br/>SuperPremium<br/>Platinum"]
+    end
+
+    USER --> TIER
+    ORDER *-- LINE
+    ORDER -. belongs to .-> USER
+    LINE -. references and snapshots .-> PRODUCT
+
+    subgraph DOMAIN_PORTS["Domain Ports"]
+        UR["IUserRepository"]
+        PR["IProductRepository"]
+        OR["IOrderRepository"]
+        DS["IDiscountStrategy"]
+    end
+
+    UR --> USER
+    PR --> PRODUCT
+    OR --> ORDER
+    DS -. discount policy contract .-> ORDER
+```
+
+### DDD aggregate boundaries
+
+| Aggregate | Root | Owned objects | Main invariants |
+|---|---|---|---|
+| User | `User` | `UserTier` value | Name and email are required |
+| Product | `Product` | Product state | Price must be positive; stock cannot be negative |
+| Order | `Order` | `OrderLineItem` collection | Order must contain at least one item; pricing is captured at checkout |
+
+`OrderLineItem` belongs to the `Order` aggregate and has no independent repository or lifecycle.
+
+---
+
+## 4. Complete class and interface connections
 
 ```mermaid
 flowchart LR
-    subgraph ApiProject["DiscountAndOrdering.Api"]
-        Program["Program.cs"]
-        ProductsController["ProductsController"]
-        UsersController["UsersController"]
-        OrdersController["OrdersController"]
+    subgraph API["API Layer"]
+        P["ProductsController"]
+        U["UsersController"]
+        O["OrdersController"]
+        ROOT["Program.cs"]
     end
 
-    subgraph AppSvc["Application Services"]
-        ProductService["ProductService"]
-        UserService["UserService"]
-        OrderService["OrderService"]
-        PricingService["PricingService"]
+    subgraph APP["Application Layer"]
+        PS["ProductService"]
+        US["UserService"]
+        OS["OrderService"]
+        PRICE["PricingService"]
+        RESOLVER["ConfigurableDiscountStrategyResolver"]
+        RESOLVER_PORT["IDiscountStrategyResolver"]
+        STRATEGY["PercentageDiscountStrategy"]
+        SETTINGS["DiscountSettings"]
     end
 
-    subgraph Discounts["Discount Policy"]
-        ResolverInterface["IDiscountStrategyResolver"]
-        Resolver["ConfigurableDiscountStrategyResolver"]
-        Strategy["PercentageDiscountStrategy"]
-        Settings["DiscountSettings"]
+    subgraph DOMAIN["Domain Layer"]
+        USER["User"]
+        PRODUCT["Product"]
+        ORDER["Order"]
+        ITEM["OrderLineItem"]
+        TIER["UserTier"]
+        IUSER["IUserRepository"]
+        IPRODUCT["IProductRepository"]
+        IORDER["IOrderRepository"]
+        IDISCOUNT["IDiscountStrategy"]
     end
 
-    subgraph DomainEntities["Domain Model"]
-        User["User"]
-        Product["Product"]
-        Order["Order"]
-        OrderLineItem["OrderLineItem"]
-        UserTier["UserTier"]
+    subgraph INFRA["Infrastructure Layer"]
+        IU["InMemoryUserRepository"]
+        IP["InMemoryProductRepository"]
+        IO["InMemoryOrderRepository"]
     end
 
-    subgraph DomainInterfaces["Domain Contracts"]
-        IUserRepository["IUserRepository"]
-        IProductRepository["IProductRepository"]
-        IOrderRepository["IOrderRepository"]
-        IDiscountStrategy["IDiscountStrategy"]
-    end
+    ROOT --> P
+    ROOT --> U
+    ROOT --> O
+    ROOT --> IU
+    ROOT --> IP
+    ROOT --> IO
+    ROOT --> RESOLVER
 
-    subgraph Infra["Infrastructure"]
-        InMemoryUserRepository["InMemoryUserRepository"]
-        InMemoryProductRepository["InMemoryProductRepository"]
-        InMemoryOrderRepository["InMemoryOrderRepository"]
-    end
+    P --> PS
+    U --> US
+    U --> OS
+    O --> OS
 
-    Program --> ProductService
-    Program --> UserService
-    Program --> OrderService
-    Program --> PricingService
-    Program --> Resolver
-    Program --> InMemoryUserRepository
-    Program --> InMemoryProductRepository
-    Program --> InMemoryOrderRepository
+    PS --> IProduct
+    US --> IUSER
+    OS --> IUSER
+    OS --> IPRODUCT
+    OS --> IORDER
+    OS --> PRICE
 
-    ProductsController --> ProductService
-    UsersController --> UserService
-    UsersController --> OrderService
-    OrdersController --> OrderService
+    PRICE --> RESOLVER_PORT
+    RESOLVER -. implements .-> RESOLVER_PORT
+    RESOLVER --> SETTINGS
+    RESOLVER --> STRATEGY
+    STRATEGY -. implements .-> IDISCOUNT
+    RESOLVER_PORT --> IDISCOUNT
 
-    ProductService --> IProductRepository
-    UserService --> IUserRepository
-    OrderService --> IUserRepository
-    OrderService --> IProductRepository
-    OrderService --> IOrderRepository
-    OrderService --> PricingService
+    IUSER --> USER
+    IPRODUCT --> PRODUCT
+    IORDER --> ORDER
+    USER --> TIER
+    ORDER *-- ITEM
+    ITEM -. product snapshot .-> PRODUCT
 
-    PricingService --> ResolverInterface
-    Resolver -. implements .-> ResolverInterface
-    Resolver --> Settings
-    Resolver --> Strategy
-    Strategy -. implements .-> IDiscountStrategy
-
-    User --> UserTier
-    Order --> User
-    Order *-- OrderLineItem
-    OrderLineItem -. snapshots product data .-> Product
-
-    InMemoryUserRepository -. implements .-> IUserRepository
-    InMemoryProductRepository -. implements .-> IProductRepository
-    InMemoryOrderRepository -. implements .-> IOrderRepository
-
-    IUserRepository --> User
-    IProductRepository --> Product
-    IOrderRepository --> Order
+    IU -. implements .-> IUSER
+    IP -. implements .-> IPRODUCT
+    IO -. implements .-> IORDER
 ```
 
 ---
 
-## 4. DDD view
-
-This repository has a clear DDD-inspired model, even though it is not a full enterprise DDD system.
-
-### Aggregate roots
-
-#### User aggregate
-- `User`
-- `UserTier`
-- Methods like `UpdateDetails()` enforce entity invariants
-
-#### Product aggregate
-- `Product`
-- Price and stock rules are validated in the entity
-- `ReduceStock()` prevents negative stock
-
-#### Order aggregate
-- `Order`
-- `OrderLineItem` is owned by the order
-- The order contains immutable/pricing-snapshot details such as product name, unit price, subtotal, discount, and final total
-
-This is a good DDD pattern because operational logic is concentrated in aggregate entities, and persistence is behind repository interfaces.
-
-### Domain contracts
-
-The repository interfaces are port definitions:
-- `IUserRepository`
-- `IProductRepository`
-- `IOrderRepository`
-
-The infrastructure layer adapts these to in-memory storage. This is exactly how Onion Architecture and DDD ports/adapters are usually modeled.
-
----
-
-## 5. Strategy and dependency injection
-
-### Strategy pattern
-
-The repository uses the strategy pattern for discount logic.
-
-```mermaid
-classDiagram
-    class IDiscountStrategy {
-        <<interface>>
-        +ApplyDiscount(decimal subtotal) decimal
-    }
-
-    class PercentageDiscountStrategy {
-        -percentage: decimal
-        +ApplyDiscount(decimal subtotal) decimal
-    }
-
-    class IDiscountStrategyResolver {
-        <<interface>>
-        +Resolve(UserTier tier) IDiscountStrategy
-    }
-
-    class ConfigurableDiscountStrategyResolver {
-        +Resolve(UserTier tier) IDiscountStrategy
-    }
-
-    class PricingService {
-        +CalculatePricing(lineItems, userTier) PricingResult
-    }
-
-    IDiscountStrategyResolver --> IDiscountStrategy
-    ConfigurableDiscountStrategyResolver ..|> IDiscountStrategyResolver
-    PercentageDiscountStrategy ..|> IDiscountStrategy
-    PricingService --> IDiscountStrategyResolver
-```
-
-The key design is that `PricingService` does not decide by `switch` statement on a user tier. Instead, it asks a resolver for the correct strategy implementation.
-
-This makes the discount rules configurable and extensible.
-
-### Dependency injection
-
-The DI container wires the runtime graph in `Program.cs`:
-
-- `IUserRepository` => `InMemoryUserRepository`
-- `IProductRepository` => `InMemoryProductRepository`
-- `IOrderRepository` => `InMemoryOrderRepository`
-- `IDiscountStrategyResolver` => `ConfigurableDiscountStrategyResolver`
-- Application services are registered as scoped services
-
-This fits clean architecture perfectly because the application and domain layers depend only on interfaces and abstractions.
-
----
-
-## 6. How the flow works in practice
+## 5. Checkout use-case flow
 
 ```mermaid
 sequenceDiagram
     actor Client
     participant Controller as OrdersController
-    participant Service as OrderService
+    participant OrderService
     participant Users as IUserRepository
     participant Products as IProductRepository
     participant Pricing as PricingService
     participant Resolver as IDiscountStrategyResolver
     participant Strategy as IDiscountStrategy
-    participant OrdersRepo as IOrderRepository
+    participant Orders as IOrderRepository
 
     Client->>Controller: POST /api/orders/checkout
-    Controller->>Service: CheckoutAsync(request)
-    Service->>Users: GetByIdAsync(userId)
-    Users-->>Service: User with tier
+    Controller->>OrderService: CheckoutAsync(request)
+    OrderService->>Users: GetByIdAsync(userId)
+    Users-->>OrderService: User with UserTier
 
-    loop each cart item
-        Service->>Products: GetByIdAsync(productId)
-        Products-->>Service: Product and stock
+    loop Cart items
+        OrderService->>Products: GetByIdAsync(productId)
+        Products-->>OrderService: Product and stock
     end
 
-    alt valid request
-        Service->>Pricing: CalculatePricing(lineItems, userTier)
-        Pricing->>Resolver: Resolve(userTier)
-        Resolver-->>Pricing: PercentageDiscountStrategy
-        Pricing->>Strategy: ApplyDiscount(subtotal)
-        Strategy-->>Pricing: discountAmount
-        Pricing-->>Service: subtotal, discount, finalTotal
+    OrderService->>OrderService: Validate cart and create snapshots
+    OrderService->>Pricing: CalculatePricing(lineItems, user.Tier)
+    Pricing->>Resolver: Resolve(userTier)
+    Resolver-->>Pricing: PercentageDiscountStrategy
+    Pricing->>Strategy: ApplyDiscount(subtotal)
+    Strategy-->>Pricing: discount amount
+    Pricing-->>OrderService: PricingResult
 
-        Service->>OrdersRepo: AddAsync(order)
-        Service->>Products: UpdateAsync(product) after stock reduction
-        Service-->>Controller: CheckoutResult.Success(order)
-        Controller-->>Client: 201 Created
-    else invalid request
-        Service-->>Controller: CheckoutResult.Failed(...)
-        Controller-->>Client: 400 Bad Request
-    end
+    OrderService->>OrderService: Create Order aggregate
+    OrderService->>Orders: AddAsync(order)
+    OrderService->>Products: Reduce stock and UpdateAsync(product)
+    OrderService-->>Controller: CheckoutResult
+    Controller-->>Client: 201 Created or 400 Bad Request
 ```
 
-This sequence clearly shows the layer boundaries:
-- Controller handles HTTP request/response
-- Service handles use cases
-- Repository handles persistence
-- Strategy handles pricing policy
-- Domain entities enforce invariants
+---
+
+## 6. Patterns represented by the circular architecture
+
+| Pattern | Main types | Role |
+|---|---|---|
+| Onion / Clean Architecture | `Api`, `Application`, `Domain`, `Infrastructure` | Controls dependency direction |
+| Domain Model | `User`, `Product`, `Order`, `OrderLineItem` | Encapsulates business state and invariants |
+| Repository | `IUserRepository`, `IProductRepository`, `IOrderRepository` | Hides persistence details |
+| Strategy | `IDiscountStrategy`, `PercentageDiscountStrategy` | Makes discount algorithms replaceable |
+| Resolver / Factory | `IDiscountStrategyResolver`, `ConfigurableDiscountStrategyResolver` | Selects the discount strategy |
+| Application Service | `OrderService`, `PricingService`, `ProductService`, `UserService` | Orchestrates use cases |
+| DTO | `CheckoutRequest`, `OrderResultDto`, `ProductDto`, `UserDto` | Separates API contracts from entities |
+| Dependency Injection | `Program.cs` | Composes the application at runtime |
 
 ---
 
-## 7. Strong architectural fit
+## 7. DDD maturity assessment
 
-This repository matches Onion Architecture very well because:
+The repository is **DDD-inspired** and uses several tactical DDD concepts:
 
-- `Domain` contains pure business concepts and rules
-- `Application` contains orchestration and use cases
-- `Infrastructure` contains persistence implementations
-- `Api` acts as the outer adapter layer
-- Dependencies point inward
-- The composition root wires everything together
+- Entities with behavior and validation
+- Aggregate roots
+- Child entities owned by an aggregate
+- Repository interfaces as domain ports
+- Business rules protected inside entities
+- Application services for use-case orchestration
 
-It also aligns with DDD at the tactical level:
+It does not yet implement every advanced DDD technique, such as:
 
-- Entities: `User`, `Product`, `Order`, `OrderLineItem`
-- Repository interfaces: persistence abstraction
-- Aggregate ownership: `Order` owns `OrderLineItem`
-- Domain rules embedded in entities
-- Strategy for discount policy
-
----
-
-## 8. Where it is not full DDD yet
-
-Even though the repo is DDD-inspired, it is not a full DDD-heavy domain model. It does not yet include several common tactical DDD elements:
-
-- Value objects (`Money`, `Email`, `Quantity`)
+- Value objects such as `Money` or `Email`
 - Domain events
 - Unit of Work
 - Explicit domain services
-- Bounded contexts or module decomposition
-- Event-sourced flow or CQRS
+- Separate bounded-context projects
+- CQRS or event sourcing
 
-For this project, the design is intentionally lightweight and pragmatic.
+For the current discount and ordering API, the lightweight model is practical and appropriate.
 
 ---
 
-## 9. Final summary
+## 8. Architectural conclusion
 
-This repo is best understood as:
-
-- An Onion/Clean Architecture solution
-- A DDD-inspired domain model with aggregate roots and repository ports
-- A layered ASP.NET Core application with strong separation between domain, application, infrastructure, and API concerns
-
-In simple terms:
+The repository follows this circular Onion Architecture:
 
 ```text
-API layer = user interaction
-Application layer = business use cases
-Domain layer = core rules and entities
-Infrastructure layer = persistence implementation
+                 ┌─────────────────────────────┐
+                 │ API / Presentation           │
+                 │ Controllers, Program.cs     │
+                 │                              │
+                 │  ┌───────────────────────┐  │
+                 │  │ Application            │  │
+                 │  │ Services, DTOs,        │  │
+                 │  │ pricing orchestration  │  │
+                 │  │                       │  │
+                 │  │  ┌─────────────────┐  │  │
+                 │  │  │ Domain Core     │  │  │
+                 │  │  │ Entities,       │  │  │
+                 │  │  │ invariants,     │  │  │
+                 │  │  │ interfaces      │  │  │
+                 │  │  └─────────────────┘  │  │
+                 │  └───────────────────────┘  │
+                 └─────────────────────────────┘
+
+ Infrastructure sits outside the onion and implements
+ interfaces defined by the Domain core.
 ```
 
-That is a strong and clean architecture for a small-to-medium enterprise C# service.
+In one sentence:
 
----
-
-## 10. Architecture conclusion
-
-If you want to show this in a single sentence:
-
-"The repository follows Onion Architecture in project structure and DDD-inspired modeling in business entities, repository interfaces, and aggregate behavior, while keeping the implementation lightweight and practical for an in-memory, API-first discount and ordering system."
+> The repository uses Onion Architecture for dependency control and a DDD-inspired domain model for users, products, orders, pricing policies, aggregate ownership, and persistence abstraction.
